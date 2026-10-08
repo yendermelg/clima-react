@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import ListaCiudades from "./componentes/ListaCiudades";
 import Pronostico from "./componentes/Pronostico";
 import {useFetch} from "./hooks/useFetch";
@@ -18,6 +18,21 @@ function App() {
   const urlPronostico = ciudad != null ? `https://api.open-meteo.com/v1/forecast?latitude=${ciudad.latitude}&longitude=${ciudad.longitude}&current=temperature_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto` : null;
 
   const pronostico = useFetch(urlPronostico);
+
+  const resumen = useMemo(() => {
+    console.log("calculando resumen");
+
+    if (pronostico.datos == null) {
+      return null;
+    }
+
+    const maxima = Math.max(...pronostico.datos.daily.temperature_2m_max);
+    const minima = Math.min(...pronostico.datos.daily.temperature_2m_min);
+    const posicion = pronostico.datos.daily.temperature_2m_max.indexOf(maxima);
+    const diaCaluroso = pronostico.datos.daily.time[posicion];
+
+    return { maxima: maxima, minima: minima, diaCaluroso: diaCaluroso };
+  }, [pronostico.datos]);
 
   return (
     <div>
@@ -41,7 +56,7 @@ function App() {
       {pronostico.cargando && <p>Cargando pronóstico…</p>}
       {pronostico.error && <p>Error: {pronostico.error}</p>}
       {ciudad != null && pronostico.datos != null && (
-        <Pronostico ciudad={ciudad} datos={pronostico.datos} />
+        <Pronostico ciudad={ciudad} datos={pronostico.datos} resumen={resumen} />
       )}
     </div>
   );
