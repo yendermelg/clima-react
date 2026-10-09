@@ -1,14 +1,27 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import ListaCiudades from "./componentes/ListaCiudades";
 import Pronostico from "./componentes/Pronostico";
-import {useFetch} from "./hooks/useFetch";
+import { useFetch } from "./hooks/useFetch";
+import { useDebounce } from "./hooks/useDebounce";
 
 function App() {
   const [texto, setTexto] = useState("");
   const [ciudad, setCiudad] = useState(null);
+  const entrada = useRef(null);
+
+  useEffect(() => {
+    entrada.current.focus();
+  }, []);
+
+  function limpiar() {
+    setTexto("");
+    setCiudad(null);
+    entrada.current.focus();
+  }
 
   const textoLimpio = texto.trim();
-  const url = textoLimpio.length >= 3 ? `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(textoLimpio)}&count=5&language=es` : null;
+  const textoDebounce = useDebounce(textoLimpio, 400);
+  const url = textoLimpio.length >= 3 && textoDebounce.length >= 3 ? `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(textoDebounce)}&count=5&language=es` : null;
   
   const ciudades = useFetch(url);
   const lista = ciudades.datos?.results ?? [];
@@ -39,11 +52,12 @@ function App() {
       <h1>Clima</h1>
 
       <input
+        ref={entrada}
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
         placeholder="Busca una ciudad"
       />
-      <button onClick={() => setTexto("")}>Limpiar</button>
+      <button onClick={limpiar}>Limpiar</button>
 
       {ciudades.cargando && <p>Buscando…</p>}
       {ciudades.error && <p>Error: {ciudades.error}</p>}
